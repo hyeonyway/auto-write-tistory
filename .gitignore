@@ -33,6 +33,8 @@ bin/
 *.test
 *.out
 coverage.out
+backend/.gocache/
+backend/.gomodcache/
 
 # Docker and local database data
 postgres_data/
@@ -51,4 +53,3 @@ screenshots/
 .vite/
 tmp/
 temp/
-
