@@ -96,10 +96,6 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 }
 
 func (s *Service) PublishTistory(ctx context.Context, id int64, req PublishRequest) (*PublishResponse, error) {
-	if strings.TrimSpace(req.Login.ID) == "" || req.Login.Password == "" {
-		return nil, NewValidationError("TISTORY_LOGIN_REQUIRED", "Tistory 로그인 정보를 입력해주세요.")
-	}
-
 	post, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -117,8 +113,6 @@ func (s *Service) PublishTistory(ctx context.Context, id int64, req PublishReque
 
 	result, err := s.tistory.Publish(ctx, tistory.PublishRequest{
 		BlogURL:         cfg.Tistory.BlogURL,
-		LoginID:         req.Login.ID,
-		LoginPassword:   req.Login.Password,
 		Title:           post.Title,
 		ContentMarkdown: post.ContentMarkdown,
 		Visibility:      visibility,
@@ -184,12 +178,10 @@ func sanitizeError(err error) string {
 func classifyTistoryError(err error) error {
 	message := err.Error()
 	switch {
-	case strings.Contains(message, "kakao authentication is still required"):
-		return NewValidationError("TISTORY_AUTH_REQUIRED", "카카오 추가 인증이 필요합니다. Selenium 브라우저에서 인증을 완료한 뒤 다시 시도해주세요.")
-	case strings.Contains(message, "tistory login failed"):
-		return NewValidationError("TISTORY_LOGIN_FAILED", "Tistory 로그인에 실패했습니다. 카카오 로그인 정보를 확인해주세요.")
-	case strings.Contains(message, "wait for tistory editor"):
-		return NewValidationError("TISTORY_SESSION_NOT_READY", "Tistory 글쓰기 화면을 열지 못했습니다. 인증 상태를 확인해주세요.")
+	case errors.Is(err, tistory.ErrSessionRequired):
+		return NewValidationError("TISTORY_SESSION_REQUIRED", "Tistory 세션을 먼저 연결해주세요.")
+	case strings.Contains(message, "tistory returned"):
+		return NewValidationError("TISTORY_PUBLISH_ERROR", "Tistory 내부 API 발행 요청이 실패했습니다.")
 	default:
 		return NewValidationError("TISTORY_PUBLISH_ERROR", "Tistory 발행 중 오류가 발생했습니다.")
 	}

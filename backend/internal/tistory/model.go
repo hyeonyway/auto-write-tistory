@@ -1,13 +1,7 @@
 package tistory
 
-type Login struct {
-	ID       string `json:"id"`
-	Password string `json:"password"`
-}
-
 type FetchCategoriesRequest struct {
 	BlogURL string `json:"blogUrl"`
-	Login   Login  `json:"login"`
 }
 
 type CategoryOption struct {
@@ -17,4 +11,14 @@ type CategoryOption struct {
 
 type FetchCategoriesResponse struct {
 	Items []CategoryOption `json:"items"`
+}
+
+type SessionStartResponse struct {
+	Connected bool   `json:"connected"`
+	Message   string `json:"message"`
+}
+
+type SessionStatusResponse struct {
+	Connected bool   `json:"connected"`
+	Message   string `json:"message"`
 }

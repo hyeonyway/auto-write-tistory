@@ -1,0 +1,12 @@
+{
+    "name": "tistory-playwright-helper",
+    "private": true,
+    "version": "0.1.0",
+    "type": "module",
+    "scripts": {
+        "session:start": "node src/session-start.js"
+    },
+    "dependencies": {
+        "playwright": "^1.49.1"
+    }
+}

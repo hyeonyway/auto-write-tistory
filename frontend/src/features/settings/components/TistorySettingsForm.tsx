@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,12 +27,13 @@ export default function TistorySettingsForm({
     isSaving,
 }: TistorySettingsFormProps) {
     const [categoryModalOpen, setCategoryModalOpen] = useState(false);
-    const [selectedCategoryLabel, setSelectedCategoryLabel] = useState('');
+    const [categories, setCategories] = useState(settings.categories);
     const {
         register,
         control,
         watch,
         setValue,
+        reset,
         handleSubmit,
         formState: { errors },
     } = useForm<FormValues>({
@@ -46,6 +47,20 @@ export default function TistorySettingsForm({
     });
     const blogUrl = watch('blogUrl');
     const categoryId = watch('categoryId');
+    const selectedCategoryLabel = useMemo(
+        () => categories.find((category) => category.categoryId === categoryId)?.label ?? '',
+        [categoryId, categories],
+    );
+
+    useEffect(() => {
+        setCategories(settings.categories);
+        reset({
+            blogUrl: settings.blogUrl,
+            categoryId: settings.categoryId,
+            defaultVisibility: settings.defaultVisibility,
+            defaultTags: settings.defaultTags,
+        });
+    }, [reset, settings]);
 
     const handleSave = (values: FormValues) => {
         const payload: UpdateSettingsRequest['tistory'] = {
@@ -86,28 +101,44 @@ export default function TistorySettingsForm({
                             카테고리 불러오기
                         </button>
                     </div>
-                    <input
-                        {...register('categoryId')}
-                        className="input-field"
-                        placeholder="카테고리를 불러와 선택하세요"
-                        readOnly
-                    />
+                    {categories.length > 0 ? (
+                        <select {...register('categoryId')} className="input-field">
+                            <option value="">카테고리를 선택하세요</option>
+                            {categories.map((category) => (
+                                <option key={category.categoryId} value={category.categoryId}>
+                                    {category.label}
+                                </option>
+                            ))}
+                        </select>
+                    ) : (
+                        <input
+                            {...register('categoryId')}
+                            className="input-field"
+                            placeholder="카테고리를 불러와 선택하세요"
+                            readOnly
+                        />
+                    )}
                     {selectedCategoryLabel ? (
                         <p className="text-text-hint text-[11px] mt-1">
                             선택됨: {selectedCategoryLabel} ({categoryId || '미선택'})
                         </p>
                     ) : (
                         <p className="text-text-hint text-[11px] mt-1">
-                            Tistory 글쓰기 화면의 카테고리 목록을 불러와 선택합니다.
+                            저장된 카테고리 목록이 없으면 먼저 카테고리를 불러오세요.
+                        </p>
+                    )}
+                    {settings.categoriesSyncedAt && (
+                        <p className="text-text-hint text-[11px] mt-1">
+                            마지막 동기화: {settings.categoriesSyncedAt}
                         </p>
                     )}
                 </div>
 
                 <div className="border border-border rounded-xl p-4">
-                    <p className="text-sm font-semibold text-text">카카오 로그인 정보</p>
+                    <p className="text-sm font-semibold text-text">Tistory 세션</p>
                     <p className="text-[11px] text-text-hint mt-1">
-                        로그인 ID/PW는 저장하지 않습니다. Tistory 발행 버튼을 누른 뒤 확인 모달에서
-                        1회 입력합니다.
+                        Kakao/Tistory ID/PW는 저장하지 않습니다. 로그인 브라우저에서 직접 인증한
+                        세션만 사용합니다.
                     </p>
                 </div>
 
@@ -163,8 +194,8 @@ export default function TistorySettingsForm({
                         shouldDirty: true,
                         shouldValidate: true,
                     });
-                    setSelectedCategoryLabel(category.label);
                 }}
+                onFetched={setCategories}
             />
         </>
     );

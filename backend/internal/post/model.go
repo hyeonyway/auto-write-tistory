@@ -72,12 +72,6 @@ type PublishRequest struct {
 	Visibility int      `json:"visibility"`
 	CategoryID string   `json:"categoryId"`
 	Tags       []string `json:"tags"`
-	Login      Login    `json:"login"`
-}
-
-type Login struct {
-	ID       string `json:"id"`
-	Password string `json:"password"`
 }
 
 type PublishResponse struct {

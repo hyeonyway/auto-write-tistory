@@ -21,9 +21,9 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 	postRepo := post.NewRepository(pool)
 	settingsRepo := settings.NewRepository(pool)
 	settingsSvc := settings.NewService(settingsRepo)
-	publisher := tistory.NewPublisher(cfg.SeleniumRemoteURL)
+	publisher := tistory.NewPublisher("")
 	postSvc := post.NewService(postRepo, renderer, settingsSvc, publisher)
-	tistorySvc := tistoryapi.NewService(publisher)
+	tistorySvc := tistoryapi.NewService(publisher, settingsSvc)
 
 	postHandler := post.NewHandler(postSvc, writeJSON, writeError, decodeJSON)
 	settingsHandler := settings.NewHandler(settingsSvc, writeJSON, writeError, decodeJSON)
@@ -43,6 +43,10 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 
 	mux.HandleFunc("GET /api/settings", settingsHandler.Get)
 	mux.HandleFunc("PUT /api/settings", settingsHandler.Update)
+	mux.HandleFunc("POST /api/tistory/session/start", tistoryHandler.StartSession)
+	mux.HandleFunc("POST /api/tistory/session/confirm", tistoryHandler.ConfirmSession)
+	mux.HandleFunc("GET /api/tistory/session/status", tistoryHandler.SessionStatus)
+	mux.HandleFunc("DELETE /api/tistory/session", tistoryHandler.DeleteSession)
 	mux.HandleFunc("POST /api/tistory/categories/fetch", tistoryHandler.FetchCategories)
 
 	return cors(cfg.CORSAllowedOrigins, mux)

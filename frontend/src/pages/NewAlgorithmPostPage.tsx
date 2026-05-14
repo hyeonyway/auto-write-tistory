@@ -8,7 +8,7 @@ import PostPreview from '@/features/posts/components/PostPreview';
 import PublishModal from '@/features/posts/components/PublishModal';
 import { postsApi } from '@/features/posts/api';
 import { settingsApi } from '@/features/settings/api';
-import type { AlgorithmInput, TistoryLoginInput } from '@/features/posts/types';
+import type { AlgorithmInput } from '@/features/posts/types';
 
 export default function NewAlgorithmPostPage() {
     const navigate = useNavigate();
@@ -56,13 +56,11 @@ export default function NewAlgorithmPostPage() {
             id,
             categoryId,
             tags,
-            login,
         }: {
             id: number;
             categoryId: string;
             tags: string[];
-            login: TistoryLoginInput;
-        }) => postsApi.publishTistory(id, { visibility: 0, categoryId, tags, login }),
+        }) => postsApi.publishTistory(id, { visibility: 0, categoryId, tags }),
         onSuccess: (res) => {
             queryClient.invalidateQueries({ queryKey: ['posts'] });
             setPublishOpen(false);
@@ -85,11 +83,7 @@ export default function NewAlgorithmPostPage() {
         setPublishOpen(true);
     };
 
-    const handlePublishConfirm = async (
-        categoryId: string,
-        tags: string[],
-        login: TistoryLoginInput,
-    ) => {
+    const handlePublishConfirm = async (categoryId: string, tags: string[]) => {
         let postId = editingPostId ?? savedPostId;
         if (postId && pendingInput) {
             await postsApi.update(postId, { type: 'ALGORITHM', input: pendingInput });
@@ -103,7 +97,7 @@ export default function NewAlgorithmPostPage() {
             queryClient.invalidateQueries({ queryKey: ['posts'] });
         }
         if (!postId) throw new Error('글 저장에 실패했습니다.');
-        await publishMutation.mutateAsync({ id: postId, categoryId, tags, login });
+        await publishMutation.mutateAsync({ id: postId, categoryId, tags });
     };
 
     const initialInput = editingPost?.input;

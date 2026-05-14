@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import Modal from '@/shared/components/Modal';
 import { settingsApi } from '@/features/settings/api';
 import type { TistoryCategoryOption } from '../types';
-import type { TistoryLoginInput } from '@/features/posts/types';
 
 interface TistoryCategoryModalProps {
     open: boolean;
@@ -10,6 +9,7 @@ interface TistoryCategoryModalProps {
     selectedCategoryId: string;
     onClose: () => void;
     onSelect: (category: TistoryCategoryOption) => void;
+    onFetched?: (items: TistoryCategoryOption[]) => void;
 }
 
 export default function TistoryCategoryModal({
@@ -18,30 +18,22 @@ export default function TistoryCategoryModal({
     selectedCategoryId,
     onClose,
     onSelect,
+    onFetched,
 }: TistoryCategoryModalProps) {
-    const [loginId, setLoginId] = useState('');
-    const [loginPassword, setLoginPassword] = useState('');
     const [items, setItems] = useState<TistoryCategoryOption[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!open) return;
-        setLoginId('');
-        setLoginPassword('');
         setItems([]);
         setError(null);
         setLoading(false);
     }, [open]);
 
     const handleFetch = async () => {
-        const trimmedLoginId = loginId.trim();
         if (!blogUrl.trim()) {
             setError('먼저 Blog URL을 입력해주세요.');
-            return;
-        }
-        if (!trimmedLoginId || !loginPassword) {
-            setError('카카오 로그인 ID와 비밀번호를 입력해주세요.');
             return;
         }
 
@@ -49,15 +41,9 @@ export default function TistoryCategoryModal({
         setError(null);
         setItems([]);
         try {
-            const req = {
-                blogUrl,
-                login: {
-                    id: trimmedLoginId,
-                    password: loginPassword,
-                } satisfies TistoryLoginInput,
-            };
-            const res = await settingsApi.fetchCategories(req);
+            const res = await settingsApi.fetchCategories({ blogUrl });
             setItems(res.items);
+            onFetched?.(res.items);
             if (res.items.length === 0) {
                 setError('카테고리를 찾지 못했습니다.');
             }
@@ -83,33 +69,11 @@ export default function TistoryCategoryModal({
             <div className="p-6">
                 <h2 className="text-[17px] font-semibold text-text">카테고리 불러오기</h2>
                 <p className="text-sm text-text-sec mt-1">
-                    Tistory 글쓰기 화면의 카테고리 목록을 Selenium으로 읽어옵니다.
+                    연결된 Tistory 세션으로 카테고리 목록을 불러옵니다.
                 </p>
             </div>
 
             <div className="border-t border-border px-6 py-4 space-y-3">
-                <div>
-                    <label className="label">카카오 로그인 ID</label>
-                    <input
-                        value={loginId}
-                        onChange={(e) => setLoginId(e.target.value)}
-                        className="input-field"
-                        autoComplete="off"
-                        placeholder="kakao-account@example.com"
-                        disabled={loading}
-                    />
-                </div>
-                <div>
-                    <label className="label">카카오 로그인 비밀번호</label>
-                    <input
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        type="password"
-                        className="input-field"
-                        autoComplete="new-password"
-                        disabled={loading}
-                    />
-                </div>
                 <button
                     type="button"
                     onClick={handleFetch}
@@ -119,7 +83,7 @@ export default function TistoryCategoryModal({
                     {loading ? '불러오는 중...' : '카테고리 불러오기'}
                 </button>
                 <p className="text-[11px] text-text-hint">
-                    입력한 로그인 정보는 요청 처리 후 저장하지 않습니다.
+                    세션이 없다면 Settings에서 로그인 브라우저를 열고 인증을 완료해주세요.
                 </p>
             </div>
 

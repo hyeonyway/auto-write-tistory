@@ -12,6 +12,10 @@ export default function SettingsPage() {
         queryKey: ['settings'],
         queryFn: settingsApi.get,
     });
+    const { data: sessionStatus } = useQuery({
+        queryKey: ['tistory-session-status'],
+        queryFn: settingsApi.sessionStatus,
+    });
 
     const updateMutation = useMutation({
         mutationFn: (req: UpdateSettingsRequest) => settingsApi.update(req),
@@ -20,6 +24,32 @@ export default function SettingsPage() {
             alert('설정이 저장되었습니다.');
         },
     });
+
+    const startSessionMutation = useMutation({
+        mutationFn: settingsApi.startSession,
+        onSuccess: (res) => {
+            alert(res.message);
+            queryClient.invalidateQueries({ queryKey: ['tistory-session-status'] });
+        },
+    });
+
+    const confirmSessionMutation = useMutation({
+        mutationFn: settingsApi.confirmSession,
+        onSuccess: (res) => {
+            alert(res.message);
+            queryClient.invalidateQueries({ queryKey: ['tistory-session-status'] });
+        },
+    });
+
+    const deleteSessionMutation = useMutation({
+        mutationFn: settingsApi.deleteSession,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['tistory-session-status'] });
+            alert('Tistory 세션을 삭제했습니다.');
+        },
+    });
+
+    const currentSession = sessionStatus ?? data?.tistory.session;
 
     return (
         <div className="flex h-screen bg-surface">
@@ -32,8 +62,59 @@ export default function SettingsPage() {
                     <div className="card p-6 max-w-2xl">
                         <h2 className="text-base font-semibold text-text">Tistory 발행 설정</h2>
                         <p className="text-sm text-text-sec mt-1 mb-6">
-                            Selenium 기반 자동 발행을 위한 기본 설정입니다.
+                            Playwright 로그인 세션과 Tistory 기본 발행 설정입니다.
                         </p>
+
+                        {data && currentSession && (
+                            <div className="mb-6 rounded-xl border border-border p-4">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p className="text-sm font-semibold text-text">
+                                            Tistory 로그인 세션
+                                        </p>
+                                        <p className="text-xs text-text-sec mt-1">
+                                            {currentSession.message}
+                                        </p>
+                                    </div>
+                                    <span
+                                        className={[
+                                            'text-[11px] font-semibold px-2 py-1 rounded',
+                                            currentSession.connected
+                                                ? 'bg-success-bg text-success-text'
+                                                : 'bg-tag text-tag-text',
+                                        ].join(' ')}
+                                    >
+                                        {currentSession.connected ? '연결됨' : '연결 필요'}
+                                    </span>
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => startSessionMutation.mutate()}
+                                        className="btn-secondary text-xs"
+                                        disabled={startSessionMutation.isPending}
+                                    >
+                                        로그인 브라우저 열기
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => confirmSessionMutation.mutate()}
+                                        className="btn-secondary text-xs"
+                                        disabled={confirmSessionMutation.isPending}
+                                    >
+                                        인증 완료 확인
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => deleteSessionMutation.mutate()}
+                                        className="btn-secondary text-xs"
+                                        disabled={deleteSessionMutation.isPending}
+                                    >
+                                        세션 연결 해제
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="border-t border-border pt-6">
                             {isLoading && (

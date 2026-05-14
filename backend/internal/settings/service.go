@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strconv"
+	"time"
 )
 
 type Service struct {
@@ -42,6 +43,17 @@ func (s *Service) Update(ctx context.Context, input TistorySettings) (*Response,
 	return s.Get(ctx)
 }
 
+func (s *Service) SaveCategories(ctx context.Context, categories []TistoryCategory) error {
+	data, err := json.Marshal(categories)
+	if err != nil {
+		return err
+	}
+	if err := s.repo.Upsert(ctx, "tistory.categories", string(data)); err != nil {
+		return err
+	}
+	return s.repo.Upsert(ctx, "tistory.categories_synced_at", time.Now().Format(time.RFC3339))
+}
+
 func decodeTistory(values map[string]string) TistorySettings {
 	visibility, err := strconv.Atoi(values["tistory.default_visibility"])
 	if err != nil {
@@ -51,15 +63,37 @@ func decodeTistory(values map[string]string) TistorySettings {
 	tags := []string{}
 	_ = json.Unmarshal([]byte(values["tistory.default_tags"]), &tags)
 
+	categories := []TistoryCategory{}
+	_ = json.Unmarshal([]byte(values["tistory.categories"]), &categories)
+
 	blogURL := values["tistory.blog_url"]
 	if blogURL == "" {
 		blogURL = "https://hyeonyway.tistory.com"
 	}
 
+	categoryID := values["tistory.category_id"]
+	categoryLabel := categoryLabel(categories, categoryID)
+
 	return TistorySettings{
-		BlogURL:           blogURL,
-		CategoryID:        values["tistory.category_id"],
-		DefaultVisibility: visibility,
-		DefaultTags:       tags,
+		BlogURL:            blogURL,
+		CategoryID:         categoryID,
+		CategoryLabel:      categoryLabel,
+		DefaultVisibility:  visibility,
+		DefaultTags:        tags,
+		Categories:         categories,
+		CategoriesSyncedAt: values["tistory.categories_synced_at"],
+		Session: TistorySessionInfo{
+			Connected: false,
+			Message:   "세션 상태를 확인하지 않았습니다.",
+		},
 	}
+}
+
+func categoryLabel(categories []TistoryCategory, categoryID string) string {
+	for _, category := range categories {
+		if category.CategoryID == categoryID {
+			return category.Label
+		}
+	}
+	return ""
 }

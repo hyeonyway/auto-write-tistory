@@ -9,7 +9,6 @@ type Config struct {
 	AppEnv             string
 	ServerPort         string
 	DatabaseURL        string
-	SeleniumRemoteURL  string
 	CORSAllowedOrigins []string
 }
 
@@ -18,7 +17,6 @@ func Load() Config {
 		AppEnv:             getEnv("APP_ENV", "local"),
 		ServerPort:         getEnv("SERVER_PORT", "8080"),
 		DatabaseURL:        getEnv("DATABASE_URL", "postgres://devlog:devlog@localhost:5432/devlog?sslmode=disable"),
-		SeleniumRemoteURL:  getEnv("SELENIUM_REMOTE_URL", "http://localhost:4444/wd/hub"),
 		CORSAllowedOrigins: splitCSV(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")),
 	}
 }

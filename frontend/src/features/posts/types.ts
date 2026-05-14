@@ -80,7 +80,6 @@ export interface PublishTistoryRequest {
     visibility: number;
     categoryId: string;
     tags: string[];
-    login: TistoryLoginInput;
 }
 
 export interface PublishTistoryResponse {
