@@ -1,0 +1,55 @@
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Node / frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+coverage/
+frontend/coverage/
+
+# Go / backend
+bin/
+*.test
+*.out
+coverage.out
+backend/.gocache/
+backend/.gomodcache/
+
+# Docker and local database data
+postgres_data/
+docker-data/
+.docker/
+
+# Selenium / browser automation artifacts
+selenium-screenshots/
+screenshots/
+*.har
+
+# Build and cache
+.cache/
+.parcel-cache/
+.turbo/
+.vite/
+tmp/
+temp/

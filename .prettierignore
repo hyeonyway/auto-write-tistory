@@ -1,0 +1,11 @@
+node_modules
+frontend/node_modules
+dist
+frontend/dist
+coverage
+frontend/coverage
+postgres_data
+docker-data
+selenium-screenshots
+screenshots
+
