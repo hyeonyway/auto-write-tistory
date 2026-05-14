@@ -177,6 +177,27 @@ HTML 안의 `window.Config.blog.categories`를 파싱해 카테고리 목록을 
 - 선택된 기본 카테고리는 기존처럼 `tistory.category_id`에 저장한다.
 - 카테고리 목록을 다시 불러오면 `tistory.categories`를 최신 목록으로 덮어쓴다.
 - 기존 기본 카테고리가 새 목록에 없으면 Settings 화면에서 선택 필요 상태로 표시한다.
+- `GET /api/settings`는 저장된 카테고리 목록도 함께 반환한다.
+- 프론트는 Settings 화면 진입 시 `GET /api/settings` 응답으로 폼 값과 카테고리 목록을 모두 복원한다.
+
+Settings 응답 예:
+
+```json
+{
+    "tistory": {
+        "blogUrl": "https://hyeonyway.tistory.com",
+        "categoryId": "1550884",
+        "categoryLabel": "알고리즘 문제 풀이",
+        "defaultVisibility": 0,
+        "defaultTags": ["알고리즘", "Java"],
+        "categories": [
+            { "categoryId": "0", "label": "카테고리 없음" },
+            { "categoryId": "1550884", "label": "알고리즘 문제 풀이" }
+        ],
+        "categoriesSyncedAt": "2026-05-14T10:30:00+09:00"
+    }
+}
+```
 
 ### 6.3 글 발행
 
@@ -271,6 +292,9 @@ Settings 화면에 Tistory 세션 영역을 추가한다.
 - `카테고리 불러오기` 버튼은 목록을 새로 동기화한다.
 - 마지막 동기화 시간을 함께 표시한다.
 - 저장된 목록이 없으면 `카테고리 불러오기`를 먼저 안내한다.
+- 다른 탭으로 이동했다가 Settings로 돌아와도 `GET /api/settings`로 저장된 값과 카테고리 목록을 다시 불러와 표시한다.
+- `react-hook-form`은 `settings` prop 변경 시 `reset(settings)`로 폼 상태를 동기화한다.
+- 선택된 카테고리 라벨은 로컬 state만 믿지 않고 `settings.categories`에서 `categoryId`로 찾아 표시한다.
 
 발행 모달에서는 Kakao ID/PW 입력란을 제거한다. 사용자는 발행 직전에 카테고리, 태그, 공개 범위만 확인한다.
 
@@ -310,6 +334,25 @@ tistory.default_visibility
 tistory.default_tags
 tistory.categories
 tistory.categories_synced_at
+```
+
+settings 응답 타입 후보:
+
+```go
+type TistoryCategory struct {
+    CategoryID string `json:"categoryId"`
+    Label      string `json:"label"`
+}
+
+type TistorySettings struct {
+    BlogURL            string            `json:"blogUrl"`
+    CategoryID         string            `json:"categoryId"`
+    CategoryLabel      string            `json:"categoryLabel"`
+    DefaultVisibility  int               `json:"defaultVisibility"`
+    DefaultTags        []string          `json:"defaultTags"`
+    Categories         []TistoryCategory `json:"categories"`
+    CategoriesSyncedAt string            `json:"categoriesSyncedAt"`
+}
 ```
 
 ## 10. Playwright helper
@@ -367,9 +410,10 @@ Go 백엔드는 `exec.CommandContext`로 helper를 호출한다. helper는 JSON 
 7. 발행을 `manage/post.json` 방식으로 전환
 8. 프론트 Settings 세션 UI 수정
 9. Settings 화면에서 저장된 카테고리 목록을 계속 선택 가능하게 표시
-10. 발행 모달에서 ID/PW 입력 제거
-11. README와 `known_issues.md` 업데이트
-12. Selenium 의존성 제거 여부 결정
+10. Settings 화면 재진입 시 `GET /api/settings` 응답으로 폼 값과 카테고리 목록 복원
+11. 발행 모달에서 ID/PW 입력 제거
+12. README와 `known_issues.md` 업데이트
+13. Selenium 의존성 제거 여부 결정
 
 ## 14. 완료 기준
 
@@ -377,6 +421,7 @@ Go 백엔드는 `exec.CommandContext`로 helper를 호출한다. helper는 JSON 
 - 저장된 세션으로 블로그 목록 또는 관리 페이지 접근을 확인할 수 있다.
 - 카테고리 조회가 Selenium DOM 조작 없이 동작한다.
 - 한 번 조회한 카테고리 목록이 Settings 화면에 남아 있고, 사용자가 기본 카테고리를 계속 변경할 수 있다.
+- Settings 화면을 벗어났다가 돌아와도 저장된 설정과 카테고리 목록이 `GET /api/settings`로 복원된다.
 - Tistory 비공개 발행이 에디터 DOM 조작 없이 동작한다.
 - 발행 모달에 Kakao/Tistory ID/PW 입력란이 없다.
 - 세션 없음, 세션 만료, 발행 실패가 구분되어 표시된다.
