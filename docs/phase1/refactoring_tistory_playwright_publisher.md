@@ -38,6 +38,7 @@ Playwright가 Tistory/Kakao 세션 저장
 - 사용자가 Kakao 추가 인증을 직접 처리할 수 있어야 한다.
 - 앱은 Kakao/Tistory ID/PW를 입력받거나 저장하지 않는다.
 - 카테고리 조회와 글 발행은 에디터 DOM 조작 없이 처리한다.
+- 한 번 불러온 Tistory 카테고리 목록은 Settings 화면에 남겨두고, 사용자가 기본 카테고리를 계속 변경할 수 있어야 한다.
 - 실패 원인은 로그인 필요, 세션 만료, 카테고리 조회 실패, 발행 실패로 구분한다.
 
 ## 3. 비목표
@@ -157,6 +158,26 @@ HTML 안의 `window.Config.blog.categories`를 파싱해 카테고리 목록을 
 }
 ```
 
+조회에 성공하면 카테고리 목록을 settings에 캐시한다. 이후 Settings 화면은 저장된 목록을 계속 보여주며, 사용자는 다시 조회하지 않아도 기본 카테고리를 변경할 수 있다.
+
+저장할 카테고리 목록 예:
+
+```json
+[
+    { "categoryId": "0", "label": "카테고리 없음" },
+    { "categoryId": "1550884", "label": "알고리즘 문제 풀이" },
+    { "categoryId": "1550885", "label": "취준" }
+]
+```
+
+저장 정책:
+
+- 카테고리 목록은 `settings`에 JSON 문자열로 저장한다.
+- key는 `tistory.categories`를 사용한다.
+- 선택된 기본 카테고리는 기존처럼 `tistory.category_id`에 저장한다.
+- 카테고리 목록을 다시 불러오면 `tistory.categories`를 최신 목록으로 덮어쓴다.
+- 기존 기본 카테고리가 새 목록에 없으면 Settings 화면에서 선택 필요 상태로 표시한다.
+
 ### 6.3 글 발행
 
 Tistory 에디터 DOM을 조작하지 않고 다음 엔드포인트를 호출한다.
@@ -222,6 +243,7 @@ POST /api/posts/{id}/publish/tistory
 - 요청 body에서 Kakao/Tistory login 제거
 - 저장된 세션이 없으면 `TISTORY_SESSION_REQUIRED`
 - 세션이 만료되었으면 `TISTORY_SESSION_EXPIRED`
+- 카테고리 조회 성공 시 `tistory.categories`에 목록 저장
 - 발행 실패 시 내부 API 응답 메시지를 마스킹해 반환
 
 ## 8. 프론트 변경
@@ -241,6 +263,14 @@ Settings 화면에 Tistory 세션 영역을 추가한다.
 - `인증 완료 확인`
 - `세션 연결 해제`
 - `카테고리 불러오기`
+
+카테고리 영역:
+
+- 마지막으로 불러온 카테고리 목록을 select 또는 radio list로 표시한다.
+- 사용자는 저장된 목록 안에서 기본 카테고리를 언제든 변경할 수 있다.
+- `카테고리 불러오기` 버튼은 목록을 새로 동기화한다.
+- 마지막 동기화 시간을 함께 표시한다.
+- 저장된 목록이 없으면 `카테고리 불러오기`를 먼저 안내한다.
 
 발행 모달에서는 Kakao ID/PW 입력란을 제거한다. 사용자는 발행 직전에 카테고리, 태그, 공개 범위만 확인한다.
 
@@ -270,6 +300,17 @@ backend/internal/publisher/tistory
 - `session`: Playwright helper 실행, storage state 파일 관리
 - `client`: 저장된 쿠키로 Tistory 내부 HTTP API 호출
 - `publisher`: post 데이터를 Tistory publish payload로 변환
+
+settings 저장 key:
+
+```text
+tistory.blog_url
+tistory.category_id
+tistory.default_visibility
+tistory.default_tags
+tistory.categories
+tistory.categories_synced_at
+```
 
 ## 10. Playwright helper
 
@@ -322,17 +363,20 @@ Go 백엔드는 `exec.CommandContext`로 helper를 호출한다. helper는 JSON 
 3. 세션 파일 저장/확인 API 추가
 4. Tistory 내부 API client 추가
 5. 카테고리 조회를 내부 API 방식으로 전환
-6. 발행을 `manage/post.json` 방식으로 전환
-7. 프론트 Settings 세션 UI 수정
-8. 발행 모달에서 ID/PW 입력 제거
-9. README와 `known_issues.md` 업데이트
-10. Selenium 의존성 제거 여부 결정
+6. 조회한 카테고리 목록을 settings에 캐시
+7. 발행을 `manage/post.json` 방식으로 전환
+8. 프론트 Settings 세션 UI 수정
+9. Settings 화면에서 저장된 카테고리 목록을 계속 선택 가능하게 표시
+10. 발행 모달에서 ID/PW 입력 제거
+11. README와 `known_issues.md` 업데이트
+12. Selenium 의존성 제거 여부 결정
 
 ## 14. 완료 기준
 
 - 사용자가 Playwright 브라우저에서 Kakao/Tistory 로그인을 직접 완료할 수 있다.
 - 저장된 세션으로 블로그 목록 또는 관리 페이지 접근을 확인할 수 있다.
 - 카테고리 조회가 Selenium DOM 조작 없이 동작한다.
+- 한 번 조회한 카테고리 목록이 Settings 화면에 남아 있고, 사용자가 기본 카테고리를 계속 변경할 수 있다.
 - Tistory 비공개 발행이 에디터 DOM 조작 없이 동작한다.
 - 발행 모달에 Kakao/Tistory ID/PW 입력란이 없다.
 - 세션 없음, 세션 만료, 발행 실패가 구분되어 표시된다.
